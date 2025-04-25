@@ -51,11 +51,23 @@ export const musicCommands = {
       .setName('stop')
       .setDescription('再生を停止します'),
     new SlashCommandBuilder()
-      .setName('loop')
+      .setName('track_loop')
       .setDescription('ループ再生を切り替えます'),
     new SlashCommandBuilder()
       .setName('disconnect')
       .setDescription('ボットをボイスチャンネルから切断します'),
+    new SlashCommandBuilder()
+      .setName('skip')
+      .setDescription('次の曲を再生します'),
+    new SlashCommandBuilder()
+      .setName('queue_loop')
+      .setDescription('キューのループを切り替えます'),
+    new SlashCommandBuilder()
+      .setName('queuelist')
+      .setDescription('キューのリストを表示します'),
+    new SlashCommandBuilder()
+      .setName('shuffle')
+      .setDescription('キュー内の曲をランダムにシャッフルします'),
   ],
 
   async execute(interaction: ChatInputCommandInteraction) {
@@ -85,6 +97,16 @@ export const musicCommands = {
         break;
       }
 
+      case 'skip': {
+        const player = await getOrCreatePlayer(interaction);
+        if (!player) return;
+
+        player.playNext();
+        await interaction.reply('wow');
+        break;
+      }
+      
+
       case 'stop': {
         const player = musicPlayers.get(interaction.guildId);
         if (player) {
@@ -96,13 +118,42 @@ export const musicCommands = {
         break;
       }
 
-      case 'loop': {
+      case 'track_loop': {
         const player = musicPlayers.get(interaction.guildId);
         if (player) {
-          const isLooping = player.toggleLoop();
+          const isLooping = player.toggleTrackLoop();
           await interaction.reply(
             isLooping ? 'ループ再生を有効にしました。' : 'ループ再生を無効にしました。'
           );
+        } else {
+          await interaction.reply({ content: '再生中の曲はありません。', ephemeral: true });
+        }
+        break;
+      }
+
+      case 'queue_loop': {
+        const player = musicPlayers.get(interaction.guildId);
+        if (player) {
+          const isLooping = player.toggleQueueLoop();
+          await interaction.reply(
+            isLooping ? 'ループ再生を有効にしました。' : 'ループ再生を無効にしました。'
+          );
+        } else {
+          await interaction.reply({ content: '再生中の曲はありません。', ephemeral: true });
+        }
+        break;
+      }
+
+      case 'queuelist': {
+        const player = musicPlayers.get(interaction.guildId);
+        if (player) {
+          const queue = player.getQueue(); // 現在のキューを取得
+          if (queue.length === 0) {
+            await interaction.reply('キューには曲がありません。');
+          } else {
+            const queueList = queue.map((track, index) => `${index + 1}. ${track}`).join('\n');
+            await interaction.reply(`現在のキュー:\n${queueList}`);
+          }
         } else {
           await interaction.reply({ content: '再生中の曲はありません。', ephemeral: true });
         }
@@ -120,6 +171,17 @@ export const musicCommands = {
         }
         break;
       }
+
+      case 'shuffle': {
+        const player = musicPlayers.get(interaction.guildId);
+        if (player) {
+          player.shuffleQueue(); // キューをシャッフル
+          await interaction.reply('キューをランダムにシャッフルしました！');
+        } else {
+          await interaction.reply({ content: '再生中の曲はありません。', ephemeral: true });
+        }
+        break;
+        }
+      }
     }
-  }
-};
+}
