@@ -90,7 +90,7 @@ exports.musicCommands = {
                 if (!player)
                     return;
                 player.playNext();
-                await interaction.reply('wow');
+                await interaction.reply('次の曲を再生します！');
                 break;
             }
             case 'stop': {
