@@ -34,18 +34,27 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MusicPlayer = void 0;
+process.env.DEBUG = 'play-dl:*';
 const voice_1 = require("@discordjs/voice");
 const fs_1 = require("fs");
 const path_1 = require("path");
 const play = __importStar(require("play-dl"));
+play.setToken({
+    youtube: {
+        cookie: 'YOUR_YOUTUBE_COOKIE', // 必要に応じてYouTubeのクッキーを設定
+    },
+});
 class MusicPlayer {
     static DEFAULT_TRACK = (0, path_1.join)(__dirname, '../music/001.mp3');
     connection = null;
     audioPlayer;
     queue = [];
+    queueBackup = []; // オリジナルのキューを保存
     isPlaying = false;
-    isLooping = true;
+    isLooping = false;
     currentTrack = null;
+    isTrackLooping = false; // 1曲のループ再生用
+    isQueueLooping = false; // キュー全体のループ再生用
     static resolveSource(source) {
         if (!source) {
             return MusicPlayer.DEFAULT_TRACK;
@@ -72,6 +81,13 @@ class MusicPlayer {
                 adapterCreator: channel.guild.voiceAdapterCreator,
             });
             this.connection.subscribe(this.audioPlayer);
+            // ../music ディレクトリ内のすべての .mp3 ファイルを取得し、001.mp3 を除外
+            const musicDir = (0, path_1.join)(__dirname, '../music');
+            const files = (0, fs_1.readdirSync)(musicDir)
+                .filter(file => file.endsWith('.mp3') && file !== '001.mp3'); // 001.mp3 を除外
+            files.forEach(file => this.addToQueue((0, path_1.join)(musicDir, file)));
+            // キューのループ再生をオンにする
+            this.isQueueLooping = true;
             return true;
         }
         catch (error) {
@@ -81,6 +97,7 @@ class MusicPlayer {
     }
     addToQueue(source) {
         this.queue.push(source);
+        this.queueBackup.push(source); // バックアップにも追加
         if (!this.isPlaying) {
             this.playNext();
         }
@@ -101,11 +118,16 @@ class MusicPlayer {
             else if (source.startsWith('http')) {
                 // URLの場合
                 if (source.includes('youtube.com') || source.includes('youtu.be')) {
-                    // YouTube URLの場合
-                    const stream = await play.stream(source);
-                    resource = (0, voice_1.createAudioResource)(stream.stream, {
-                        inputType: stream.type
-                    });
+                    try {
+                        const stream = await play.stream(source);
+                        resource = (0, voice_1.createAudioResource)(stream.stream, {
+                            inputType: stream.type,
+                        });
+                    }
+                    catch (error) {
+                        console.error('YouTubeストリームの取得に失敗しました:', error);
+                        throw new Error('YouTubeストリームの取得に失敗しました');
+                    }
                 }
                 else {
                     // その他のURLの場合は直接リソースとして使用
@@ -129,8 +151,20 @@ class MusicPlayer {
         }
     }
     async playNext() {
-        if (this.queue.length === 0)
+        if (this.isTrackLooping && this.currentTrack) {
+            // 1曲のループ再生
+            await this.playTrack(this.currentTrack);
             return;
+        }
+        if (this.queue.length === 0) {
+            if (this.isQueueLooping) {
+                // キュー全体をループ再生する場合、シャッフルされた順序でリセット
+                this.queue = [...this.queueBackup];
+            }
+            else {
+                return;
+            }
+        }
         const source = this.queue.shift();
         if (!source)
             return;
@@ -143,17 +177,50 @@ class MusicPlayer {
         await this.playTrack(this.currentTrack);
     }
     stop() {
-        this.queue = [];
-        this.audioPlayer.stop();
-        this.isPlaying = false;
-        this.currentTrack = null;
+        this.audioPlayer.stop(); // 再生を停止
+        this.isPlaying = false; // 再生状態をリセット
+        this.currentTrack = null; // 現在の曲をリセット
+        this.queue = []; // キューをリセット
+        this.queueBackup = []; // バックアップキューもリセット
     }
     toggleLoop() {
         this.isLooping = !this.isLooping;
         return this.isLooping;
     }
+    toggleTrackLoop() {
+        this.isTrackLooping = !this.isTrackLooping;
+        return this.isTrackLooping;
+    }
+    toggleQueueLoop() {
+        this.isQueueLooping = !this.isQueueLooping;
+        return this.isQueueLooping;
+    }
     isLoopEnabled() {
         return this.isLooping;
+    }
+    isTrackLoopEnabled() {
+        return this.isTrackLooping;
+    }
+    isQueueLoopEnabled() {
+        return this.isQueueLooping;
+    }
+    /**
+     * 現在のキューを取得する
+     * @returns 現在のキューの配列
+     */
+    getQueue() {
+        return [...this.queue]; // キューのコピーを返す
+    }
+    /**
+     * キューをランダムにシャッフルする
+     */
+    shuffleQueue() {
+        for (let i = this.queue.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [this.queue[i], this.queue[j]] = [this.queue[j], this.queue[i]];
+        }
+        // シャッフルされた状態をバックアップキューにも反映
+        this.queueBackup = [...this.queue];
     }
     disconnect() {
         this.stop();
