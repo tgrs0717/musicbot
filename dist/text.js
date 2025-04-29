@@ -57,7 +57,7 @@ client.on('messageCreate', async (message) => {
             const minutes = Math.floor(elapsedTime / 60);
             const seconds = elapsedTime % 60;
             // 「作業時間」のリプライを1分後に削除
-            await replyAndDelete(message, `作業時間: ${minutes}分${seconds}秒`, 60000); // 60000ミリ秒 = 1分
+            await message.reply(`作業時間: ${minutes}分${seconds}秒`);
             // 記録をリセット
             startTimes.delete(message.author.id);
         }
