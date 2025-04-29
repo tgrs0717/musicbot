@@ -87,10 +87,11 @@ function scheduleDailyReset() {
                 const seconds = elapsedTime % 60;
                 // 元のメッセージにリプライ
                 try {
-                    await replyAndDelete(message, `お疲れ様です。作業時間: ${minutes}分${seconds}秒`, 600000);
+                    await message.author.send(`お疲れ様です。作業時間: ${minutes}分${seconds}秒`);
                 }
                 catch (error) {
-                    console.error(`ユーザー ${userId} へのリプライに失敗しました:`, error);
+                    console.error(`ユーザー ${userId} へのDM送信に失敗しました:`, error);
+                    // DMが送れない場合はチャンネルにフォールバック
                 }
             }
             // 記録をリセット
