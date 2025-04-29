@@ -87,7 +87,7 @@ function scheduleDailyReset() {
                 const seconds = elapsedTime % 60;
                 // 元のメッセージにリプライ
                 try {
-                    await message.reply(`お疲れ様です。作業時間: ${minutes}分${seconds}秒`);
+                    await replyAndDelete(message, `お疲れ様です。作業時間: ${minutes}分${seconds}秒`, 600000);
                 }
                 catch (error) {
                     console.error(`ユーザー ${userId} へのリプライに失敗しました:`, error);
