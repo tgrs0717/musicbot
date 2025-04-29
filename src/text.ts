@@ -66,7 +66,7 @@ client.on('messageCreate', async (message: Message) => {
 
       try {
         // メッセージにリアクションを追加
-        const reaction = await message.react('✅'); // 作業時間を記録した場合のリアクション
+        const reaction = await message.react('☑'); // 作業時間を記録した場合のリアクション
         // 5秒後にリアクションを外す
         setTimeout(async () => {
           try {
