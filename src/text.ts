@@ -60,7 +60,7 @@ client.on('messageCreate', async (message: Message) => {
       const seconds = elapsedTime % 60;
 
       // 「作業時間」のリプライを1分後に削除
-      await replyAndDelete(message, `作業時間: ${minutes}分${seconds}秒`, 60000); // 60000ミリ秒 = 1分
+      await message.reply(`作業時間: ${minutes}分${seconds}秒`); 
 
       // 記録をリセット
       startTimes.delete(message.author.id);
@@ -73,7 +73,7 @@ client.on('messageCreate', async (message: Message) => {
     if (startTimes.has(message.author.id)) {
       await replyAndDelete(message, '既に開始時刻が記録されています！');
       return;
-    }
+    }  
 
     startTimes.set(message.author.id, new Date());
     await replyAndDelete(message, '開始時刻を記録しました！');
