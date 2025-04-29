@@ -36,8 +36,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
 const dotenv = __importStar(require("dotenv"));
 const music_1 = require("./commands/music");
+const text_1 = require("./text");
 // Load environment variables
 dotenv.config();
+// Discordボットのトークン
+const BOT_TOKEN = 'MTM2MjM5MzE2MzQ5ODUyMDc4Nw.G9Hemi.tpQGwj2lDjbP5AJUQmQH4TjuHTPml1VCEk7KYM';
+// text.ts の初期化
+(0, text_1.initializeTextBot)(BOT_TOKEN);
+console.log('Bot is running...');
 // Create a new client instance
 const client = new discord_js_1.Client({
     intents: [
