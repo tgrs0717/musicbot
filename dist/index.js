@@ -40,7 +40,7 @@ const text_1 = require("./text");
 // Load environment variables
 dotenv.config();
 // Discordボットのトークン
-const BOT_TOKEN = 'MTM2MjM5MzE2MzQ5ODUyMDc4Nw.G9Hemi.tpQGwj2lDjbP5AJUQmQH4TjuHTPml1VCEk7KYM';
+const BOT_TOKEN = 'MTM2MjMyMDA0MzM0NTU4MDA0Mg.Gow-4Q.H6zVG1FAm8PAZxykK6AUZLyqXDXV4ErDlrq4Ns';
 // text.ts の初期化
 (0, text_1.initializeTextBot)(BOT_TOKEN);
 console.log('Bot is running...');
