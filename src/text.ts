@@ -46,7 +46,7 @@ client.on('messageCreate', async (message: Message) => {
   const content = message.content;
 
   // 「終了」を含むメッセージを処理
-  if (content.includes('終了')) {
+  if (content.includes('終了')||content.includes('休憩')) {
     const startRecord = startTimes.get(message.author.id);
 
     if (!startRecord) {
@@ -59,8 +59,7 @@ client.on('messageCreate', async (message: Message) => {
       const minutes = Math.floor(elapsedTime / 60);
       const seconds = elapsedTime % 60;
 
-      // 「作業時間」のリプライを1分後に削除
-      await message.reply( `お疲れ様です。作業時間: ${minutes}分${seconds}秒`); // 60000ミリ秒 = 1分
+      await message.reply( `お疲れ様です。作業時間: ${minutes}分${seconds}秒`); 
 
       // 記録をリセット
       startTimes.delete(message.author.id);
@@ -68,7 +67,7 @@ client.on('messageCreate', async (message: Message) => {
   }
 
   // 「開始」を含むメッセージを処理
-  if (content.includes('開始')) {
+  if (content.includes('開始')||content.includes('再開')) {
     // 既に「開始」が記録されている場合は無視
     if (startTimes.has(message.author.id)) {
       await replyAndDelete(message, '既に開始時刻が記録されています');
