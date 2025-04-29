@@ -1,4 +1,4 @@
-import { Client, Events, GatewayIntentBits, REST, Routes } from 'discord.js';
+import { Client, Events, GatewayIntentBits, REST, Routes, GuildMemberRoleManager } from 'discord.js';
 import * as dotenv from 'dotenv';
 import { musicCommands } from './commands/music';
 import { initializeTextBot } from './text';
@@ -45,7 +45,20 @@ client.once(Events.ClientReady, async (readyClient) => {
 // Handle interactions
 client.on(Events.InteractionCreate, async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
-  
+
+  // 特定のロールIDを指定
+  const allowedRoleId = '1366729241504383026'; // 使用を許可するロールのID
+
+  // ユーザーが特定のロールを持っているか確認
+  const member = interaction.member;
+  if (member && 'roles' in member && member.roles instanceof GuildMemberRoleManager && !member.roles.cache.has(allowedRoleId)) {
+    await interaction.reply({
+      content: 'Sorry!このコマンドを使用する権限がありません。',
+      ephemeral: true,
+    });
+    return;
+  }
+
   try {
     await musicCommands.execute(interaction);
   } catch (error) {

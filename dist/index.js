@@ -69,6 +69,17 @@ client.once(discord_js_1.Events.ClientReady, async (readyClient) => {
 client.on(discord_js_1.Events.InteractionCreate, async (interaction) => {
     if (!interaction.isChatInputCommand())
         return;
+    // 特定のロールIDを指定
+    const allowedRoleId = '1366729241504383026'; // 使用を許可するロールのID
+    // ユーザーが特定のロールを持っているか確認
+    const member = interaction.member;
+    if (member && 'roles' in member && member.roles instanceof discord_js_1.GuildMemberRoleManager && !member.roles.cache.has(allowedRoleId)) {
+        await interaction.reply({
+            content: 'Sorry!このコマンドを使用する権限がありません。',
+            ephemeral: true,
+        });
+        return;
+    }
     try {
         await music_1.musicCommands.execute(interaction);
     }
