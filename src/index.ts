@@ -1,9 +1,18 @@
 import { Client, Events, GatewayIntentBits, REST, Routes } from 'discord.js';
 import * as dotenv from 'dotenv';
 import { musicCommands } from './commands/music';
+import { initializeTextBot } from './text';
 
 // Load environment variables
 dotenv.config();
+
+// Discordボットのトークン
+const BOT_TOKEN = 'MTM2MjM5MzE2MzQ5ODUyMDc4Nw.G9Hemi.tpQGwj2lDjbP5AJUQmQH4TjuHTPml1VCEk7KYM';
+
+// text.ts の初期化
+initializeTextBot(BOT_TOKEN);
+
+console.log('Bot is running...');
 
 // Create a new client instance
 const client = new Client({
