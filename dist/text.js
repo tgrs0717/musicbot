@@ -48,7 +48,13 @@ client.on('messageCreate', async (message) => {
     if (content.includes('終了') || content.includes('休憩')) {
         const startRecord = startTimes.get(message.author.id);
         if (!startRecord) {
-            await replyAndDelete(message, '開始時刻が記録されていません。');
+            try {
+                // DMで開始時刻が記録されていないことを通知
+                await replyAndDelete(message, '開始時刻が記録されていません。');
+            }
+            catch (error) {
+                console.error('DMの送信に失敗しました:', error);
+            }
         }
         else {
             const endTime = new Date();
@@ -56,7 +62,24 @@ client.on('messageCreate', async (message) => {
             // 経過時間を分と秒に変換
             const minutes = Math.floor(elapsedTime / 60);
             const seconds = elapsedTime % 60;
-            await message.reply(`お疲れ様です。作業時間: ${minutes}分${seconds}秒`);
+            try {
+                // メッセージにリアクションを追加
+                const reaction = await message.react('✅'); // 作業時間を記録した場合のリアクション
+                // 5秒後にリアクションを外す
+                setTimeout(async () => {
+                    try {
+                        await reaction.remove();
+                    }
+                    catch (error) {
+                        console.error('リアクションの削除に失敗しました:', error);
+                    }
+                }, 3000);
+                // DMで作業時間を通知
+                await message.author.send(`お疲れ様です。作業時間: ${minutes}分${seconds}秒`);
+            }
+            catch (error) {
+                console.error('リアクションの追加またはDMの送信に失敗しました:', error);
+            }
             // 記録をリセット
             startTimes.delete(message.author.id);
         }
@@ -70,7 +93,22 @@ client.on('messageCreate', async (message) => {
         }
         // 開始時刻と元のメッセージを記録
         startTimes.set(message.author.id, { startTime: new Date(), message });
-        await replyAndDelete(message, '開始時刻を記録しました');
+        // メッセージにリアクションを追加
+        try {
+            const reaction = await message.react('✅'); // 好きな絵文字を指定
+            // 5秒後にリアクションを外す
+            setTimeout(async () => {
+                try {
+                    await reaction.remove();
+                }
+                catch (error) {
+                    console.error('リアクションの削除に失敗しました:', error);
+                }
+            }, 3000);
+        }
+        catch (error) {
+            console.error('リアクションの追加に失敗しました:', error);
+        }
     }
 });
 // 毎朝5時に経過時間をリセットする処理
@@ -84,13 +122,11 @@ function scheduleDailyReset() {
                 // 経過時間を分と秒に変換
                 const minutes = Math.floor(elapsedTime / 60);
                 const seconds = elapsedTime % 60;
-                // 元のメッセージにリプライ
                 try {
                     await message.author.send(`お疲れ様です。作業時間: ${minutes}分${seconds}秒`);
                 }
                 catch (error) {
                     console.error(`ユーザー ${userId} へのDM送信に失敗しました:`, error);
-                    // DMが送れない場合はチャンネルにフォールバック
                 }
             }
             // 記録をリセット
