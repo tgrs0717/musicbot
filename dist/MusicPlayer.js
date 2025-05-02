@@ -81,11 +81,6 @@ class MusicPlayer {
                 adapterCreator: channel.guild.voiceAdapterCreator,
             });
             this.connection.subscribe(this.audioPlayer);
-            // ../music ディレクトリ内のすべての .mp3 ファイルを取得し、001.mp3 を除外
-            const musicDir = (0, path_1.join)(__dirname, '../music');
-            const files = (0, fs_1.readdirSync)(musicDir)
-                .filter(file => file.endsWith('.mp3') && file !== '001.mp3'); // 001.mp3 を除外
-            files.forEach(file => this.addToQueue((0, path_1.join)(musicDir, file)));
             // キューのループ再生をオンにする
             this.isQueueLooping = true;
             return true;

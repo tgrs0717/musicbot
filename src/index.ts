@@ -1,6 +1,7 @@
 import { Client, Events, GatewayIntentBits, REST, Routes, GuildMemberRoleManager } from 'discord.js';
 import * as dotenv from 'dotenv';
 import { musicCommands } from './commands/music';
+import { helloCommand } from './commands/question';
 import { initializeTextBot } from './text';
 
 // Load environment variables

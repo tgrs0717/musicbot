@@ -1,5 +1,7 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
 import { MusicPlayer } from '../MusicPlayer';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const musicPlayers = new Map<string, MusicPlayer>();
 
@@ -68,6 +70,15 @@ export const musicCommands = {
     new SlashCommandBuilder()
       .setName('shuffle')
       .setDescription('キュー内の曲をランダムにシャッフルします'),
+    new SlashCommandBuilder()
+      .setName('play2')
+      .setDescription('指定した曲を再生し、musicフォルダ内の.mp3をキューに追加します')
+      .addStringOption(option =>
+        option
+          .setName('source')
+          .setDescription('再生するファイル名またはURL（省略時は001.mp3）')
+          .setRequired(false)
+      ),
   ],
 
   async execute(interaction: ChatInputCommandInteraction) {
@@ -83,7 +94,7 @@ export const musicCommands = {
 
         const source = MusicPlayer.resolveSource(interaction.options.getString('source'));
         await player.playImmediate(source);
-        await interaction.reply('再生を開始します！');
+        await interaction.reply({content:'再生を開始します',ephemeral:true,});
         break;
       }
 
@@ -93,7 +104,7 @@ export const musicCommands = {
 
         const source = MusicPlayer.resolveSource(interaction.options.getString('source'));
         player.addToQueue(source);
-        await interaction.reply('キューに追加しました！');
+        await interaction.reply({content:'キューに追加しました',ephemeral:true,});
         break;
       }
 
@@ -102,7 +113,8 @@ export const musicCommands = {
         if (!player) return;
 
         player.playNext();
-        await interaction.reply('次の曲を再生します！');
+        await interaction.reply({content:'曲をスキップしました',ephemeral: true,}
+        );
         break;
       }
       
@@ -111,7 +123,7 @@ export const musicCommands = {
         const player = musicPlayers.get(interaction.guildId);
         if (player) {
           player.stop();
-          await interaction.reply('再生を停止しました。');
+          await interaction.reply({content:'再生を停止しました。',ephemeral:true,});
         } else {
           await interaction.reply({ content: '再生中の曲はありません。', ephemeral: true });
         }
@@ -149,7 +161,7 @@ export const musicCommands = {
         if (player) {
           const queue = player.getQueue(); // 現在のキューを取得
           if (queue.length === 0) {
-            await interaction.reply('キューには曲がありません。');
+            await interaction.reply({content:'キューには曲がありません。',ephemeral:true,});
           } else {
             const queueList = queue.map((track, index) => `${index + 1}. ${track}`).join('\n');
             await interaction.reply(`現在のキュー:\n${queueList}`);
@@ -165,7 +177,9 @@ export const musicCommands = {
         if (player) {
           player.disconnect();
           musicPlayers.delete(interaction.guildId);
-          await interaction.reply('ボイスチャンネルから切断しました。');
+          await interaction.reply({content: 'ボイスチャンネルから切断しました。', ephemeral: true,}
+
+          );
         } else {
           await interaction.reply({ content: 'ボットはボイスチャンネルに参加していません。', ephemeral: true });
         }
@@ -176,12 +190,36 @@ export const musicCommands = {
         const player = musicPlayers.get(interaction.guildId);
         if (player) {
           player.shuffleQueue(); // キューをシャッフル
-          await interaction.reply('キューをランダムにシャッフルしました！');
+          await interaction.reply({content:'キューをランダムにシャッフルしました！',ephemeral:true,});
         } else {
           await interaction.reply({ content: '再生中の曲はありません。', ephemeral: true });
         }
         break;
         }
+
+      case 'play2': {
+        const player = await getOrCreatePlayer(interaction);
+        if (!player) return;
+
+        // 再生する曲を取得
+        const source = MusicPlayer.resolveSource(interaction.options.getString('source'));
+        await player.playImmediate(source);
+
+        // musicフォルダ内の.mp3ファイルを取得してキューに追加
+        const musicFolderPath = path.join(__dirname, '../../music');
+        const files = fs.readdirSync(musicFolderPath).filter(file => file.endsWith('.mp3'));
+
+        for (const file of files) {
+          const filePath = path.join(musicFolderPath, file);
+          player.addToQueue(filePath);
+        }
+
+        await interaction.reply({
+          content: `再生を開始しました。musicフォルダ内の${files.length}曲をキューに追加しました。`,
+          ephemeral: true,
+        });
+        break;
       }
     }
-}
+  },
+};
