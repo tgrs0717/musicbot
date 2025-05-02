@@ -115,7 +115,7 @@ client.on('messageCreate', async (message) => {
 function scheduleDailyReset() {
     setInterval(async () => {
         const now = new Date();
-        if (now.getHours() === 5 && now.getMinutes() === 11) {
+        if (now.getHours() === 5 && now.getMinutes() === 0) {
             for (const [userId, { startTime, message }] of startTimes.entries()) {
                 const endTime = new Date();
                 const elapsedTime = Math.floor((endTime.getTime() - startTime.getTime()) / 1000); // 経過時間を秒で計算
