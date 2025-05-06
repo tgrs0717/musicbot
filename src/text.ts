@@ -46,7 +46,7 @@ client.on('messageCreate', async (message: Message) => {
   const content = message.content;
 
   // 「終了」を含むメッセージを処理
-  if (content.includes('終了') || content.includes('休憩')) {
+  if (content.includes('終了') || content.includes('休憩')|| content.includes('中断')) {
     const startRecord = startTimes.get(message.author.id);
 
     if (!startRecord) {
