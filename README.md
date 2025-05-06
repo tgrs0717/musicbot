@@ -29,3 +29,5 @@ npm start
 - 基本的なコマンド処理
 - TypeScriptによる型安全な開発環境
 - 環境変数による設定管理
+
+node_modules/

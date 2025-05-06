@@ -3,6 +3,19 @@ import * as dotenv from 'dotenv';
 import { musicCommands } from './commands/music';
 import { helloCommand } from './commands/question';
 import { initializeTextBot } from './text';
+import express from 'express';
+
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.get('/', (_req, res) => {
+  res.send('Hello from Render with Express + TypeScript!');
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 
 // Load environment variables
 dotenv.config();
