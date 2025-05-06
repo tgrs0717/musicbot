@@ -52,7 +52,10 @@ app.listen(PORT, () => {
 // Load environment variables
 dotenv.config();
 // Discordボットのトークン
-const BOT_TOKEN = 'MTM2MjMyMDA0MzM0NTU4MDA0Mg.Gow-4Q.H6zVG1FAm8PAZxykK6AUZLyqXDXV4ErDlrq4Ns';
+const BOT_TOKEN = process.env.DISCORD_TOKEN;
+if (!BOT_TOKEN) {
+    throw new Error('BOT_TOKEN is not defined in the environment variables.');
+}
 // text.ts の初期化
 (0, text_1.initializeTextBot)(BOT_TOKEN);
 console.log('Bot is running...');
