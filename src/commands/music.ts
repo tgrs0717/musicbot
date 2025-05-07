@@ -71,8 +71,8 @@ export const musicCommands = {
       .setName('shuffle')
       .setDescription('キュー内の曲をランダムにシャッフルします'),
     new SlashCommandBuilder()
-      .setName('play2')
-      .setDescription('指定した曲を再生し、musicフォルダ内の.mp3をキューに追加します')
+      .setName('play_deffault')
+      .setDescription('デフォルトのプレイリストを再生します')
       .addStringOption(option =>
         option
           .setName('source')

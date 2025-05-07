@@ -96,8 +96,8 @@ exports.musicCommands = {
             .setName('shuffle')
             .setDescription('キュー内の曲をランダムにシャッフルします'),
         new discord_js_1.SlashCommandBuilder()
-            .setName('play2')
-            .setDescription('指定した曲を再生し、musicフォルダ内の.mp3をキューに追加します')
+            .setName('play_deffault')
+            .setDescription('デフォルトのプレイリストを再生します')
             .addStringOption(option => option
             .setName('source')
             .setDescription('再生するファイル名またはURL（省略時は001.mp3）')

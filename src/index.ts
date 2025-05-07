@@ -77,15 +77,22 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 
   try {
+    // deferReply を先に呼ぶことで5秒制限を回避
+    await interaction.deferReply({ ephemeral: true });
+
     await musicCommands.execute(interaction);
-  } catch (error) {
+
+    // もし execute() 側で応答していないなら、ここで editReply してもよい
+    // await interaction.editReply({ content: '処理が完了しました。' });
+} catch (error) {
     console.error(error);
     if (interaction.replied || interaction.deferred) {
-      await interaction.followUp({ content: 'コマンドの実行中にエラーが発生しました。', ephemeral: true });
+        await interaction.followUp({ content: 'コマンドの実行中にエラーが発生しました。', ephemeral: true });
     } else {
-      await interaction.reply({ content: 'コマンドの実行中にエラーが発生しました。', ephemeral: true });
+        await interaction.reply({ content: 'コマンドの実行中にエラーが発生しました。', ephemeral: true });
     }
-  }
+}
+
 });
 
 // Log in to Discord with your client's token

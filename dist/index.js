@@ -97,7 +97,11 @@ client.on(discord_js_1.Events.InteractionCreate, async (interaction) => {
         return;
     }
     try {
+        // deferReply を先に呼ぶことで5秒制限を回避
+        await interaction.deferReply({ ephemeral: true });
         await music_1.musicCommands.execute(interaction);
+        // もし execute() 側で応答していないなら、ここで editReply してもよい
+        // await interaction.editReply({ content: '処理が完了しました。' });
     }
     catch (error) {
         console.error(error);
