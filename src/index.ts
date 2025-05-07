@@ -1,11 +1,11 @@
-import { Client, Events, GatewayIntentBits, REST, Routes, GuildMemberRoleManager } from 'discord.js';
+import { Client, Collection, Events, GatewayIntentBits, REST, Routes, Interaction } from 'discord.js';
 import * as dotenv from 'dotenv';
-import { questionCommand } from './commands/question';
-import { musicCommands } from './commands/music';
+import * as fs from 'fs';
+import * as path from 'path';
 import { initializeTextBot } from './text';
 import express from 'express';
 
-
+// Expressサーバーの設定
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -31,55 +31,77 @@ initializeTextBot(BOT_TOKEN);
 
 console.log('Bot is running...');
 
-// Create a new client instance
-const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildVoiceStates,  // 音声機能に必要
-  ],
-});
+// Discordクライアントの拡張クラス
+class ExtendedClient extends Client {
+  commands: Collection<string, any>;
 
-// When the client is ready, run this code (only once)
-client.once(Events.ClientReady, async (readyClient) => {
-  console.log(`Ready! Logged in as ${readyClient.user.tag}`);
-
-  // Register slash commands
-  const rest = new REST().setToken(process.env.DISCORD_TOKEN!);
-  try {
-    console.log('Started refreshing application (/) commands.');
-
-    await rest.put(
-      Routes.applicationCommands(process.env.CLIENT_ID!),
-      { body: [...musicCommands.data, questionCommand.data] }, // questionCommand を追加
-    );
-
-    console.log('Successfully reloaded application (/) commands.');
-  } catch (error) {
-    console.error(error);
+  constructor(options: any) {
+    super(options);
+    this.commands = new Collection();
   }
+}
+
+// Discordクライアントの作成
+const client = new ExtendedClient({
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates],
 });
 
-// Handle interactions
-client.on(Events.InteractionCreate, async (interaction) => {
+// コマンドファイルの読み込み
+const commandsPath = path.join(__dirname, 'commands');
+const commandFiles = fs
+  .readdirSync(commandsPath)
+  .filter(file => file.endsWith('.ts') || file.endsWith('.js'));
+
+  for (const file of commandFiles) {
+    const filePath = path.join(commandsPath, file);
+    const commandModule = require(filePath);
+    const command = commandModule.default || commandModule;
+  
+    if (Array.isArray(command.data)) {
+      for (const builder of command.data) {
+        client.commands.set(builder.name, {
+          ...command,
+          data: builder,
+        });
+      }
+    } else if ('data' in command && 'execute' in command) {
+      client.commands.set(command.data.name, command);
+    } else {
+      console.warn(`⚠️ コマンドファイル "${file}" に data または execute が存在しません`);
+    }
+  }
+
+// ボット起動時のログ
+client.once('ready', () => {
+  console.log(`✅ Botとしてログインしました: ${client.user?.tag}`);
+});
+
+// コマンド実行処理
+client.on('interactionCreate', async (interaction: Interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
+  const command = client.commands.get(interaction.commandName);
+  if (!command) {
+    console.error(`❌ 未登録のコマンド: ${interaction.commandName}`);
+    return;
+  }
+
   try {
-    // deferReply を先に呼ぶことで5秒制限を回避
-    await interaction.deferReply({ ephemeral: true });
-
-    await musicCommands.execute(interaction);
-
-    // もし execute() 側で応答していないなら、ここで editReply してもよい
-    // await interaction.editReply({ content: '処理が完了しました。' });
+    await command.execute(interaction);
   } catch (error) {
-    console.error(error);
+    console.error(`❌ コマンド "${interaction.commandName}" 実行時にエラー発生:`, error);
     if (interaction.replied || interaction.deferred) {
-      await interaction.followUp({ content: 'コマンドの実行中にエラーが発生しました。', ephemeral: true });
+      await interaction.editReply({
+        content: '⚠️ コマンド実行中にエラーが発生しました。',
+      });
     } else {
-      await interaction.reply({ content: 'コマンドの実行中にエラーが発生しました。', ephemeral: true });
+      await interaction.reply({
+        content: '⚠️ コマンド実行中にエラーが発生しました。',
+        ephemeral: true,
+      });
     }
   }
 });
 
-// Log in to Discord with your client's token
+// トークンでログイン
 client.login(process.env.DISCORD_TOKEN);
