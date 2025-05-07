@@ -96,7 +96,7 @@ exports.musicCommands = {
             .setName('shuffle')
             .setDescription('キュー内の曲をランダムにシャッフルします'),
         new discord_js_1.SlashCommandBuilder()
-            .setName('play_deffault')
+            .setName('play_default')
             .setDescription('デフォルトのプレイリストを再生します')
             .addStringOption(option => option
             .setName('source')
@@ -208,7 +208,7 @@ exports.musicCommands = {
                 }
                 break;
             }
-            case 'play2': {
+            case 'play_default': {
                 const player = await getOrCreatePlayer(interaction);
                 if (!player)
                     return;

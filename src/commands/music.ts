@@ -71,7 +71,7 @@ export const musicCommands = {
       .setName('shuffle')
       .setDescription('キュー内の曲をランダムにシャッフルします'),
     new SlashCommandBuilder()
-      .setName('play_deffault')
+      .setName('play_default')
       .setDescription('デフォルトのプレイリストを再生します')
       .addStringOption(option =>
         option
@@ -197,7 +197,7 @@ export const musicCommands = {
         break;
         }
 
-      case 'play2': {
+      case 'play_default': {
         const player = await getOrCreatePlayer(interaction);
         if (!player) return;
 
