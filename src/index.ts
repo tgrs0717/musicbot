@@ -63,19 +63,6 @@ client.once(Events.ClientReady, async (readyClient) => {
 client.on(Events.InteractionCreate, async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
-  // 特定のロールIDを指定
-  const allowedRoleId = '1366729241504383026'; // 使用を許可するロールのID
-
-  // ユーザーが特定のロールを持っているか確認
-  const member = interaction.member;
-  if (member && 'roles' in member && member.roles instanceof GuildMemberRoleManager && !member.roles.cache.has(allowedRoleId)) {
-    await interaction.reply({
-      content: 'Sorry!このコマンドを使用する権限がありません。',
-      ephemeral: true,
-    });
-    return;
-  }
-
   try {
     // deferReply を先に呼ぶことで5秒制限を回避
     await interaction.deferReply({ ephemeral: true });
@@ -84,15 +71,14 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
     // もし execute() 側で応答していないなら、ここで editReply してもよい
     // await interaction.editReply({ content: '処理が完了しました。' });
-} catch (error) {
+  } catch (error) {
     console.error(error);
     if (interaction.replied || interaction.deferred) {
-        await interaction.followUp({ content: 'コマンドの実行中にエラーが発生しました。', ephemeral: true });
+      await interaction.followUp({ content: 'コマンドの実行中にエラーが発生しました。', ephemeral: true });
     } else {
-        await interaction.reply({ content: 'コマンドの実行中にエラーが発生しました。', ephemeral: true });
+      await interaction.reply({ content: 'コマンドの実行中にエラーが発生しました。', ephemeral: true });
     }
-}
-
+  }
 });
 
 // Log in to Discord with your client's token
