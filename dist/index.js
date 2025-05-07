@@ -38,6 +38,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
 const dotenv = __importStar(require("dotenv"));
+const question_1 = require("./commands/question");
 const music_1 = require("./commands/music");
 const text_1 = require("./text");
 const express_1 = __importDefault(require("express"));
@@ -73,7 +74,7 @@ client.once(discord_js_1.Events.ClientReady, async (readyClient) => {
     const rest = new discord_js_1.REST().setToken(process.env.DISCORD_TOKEN);
     try {
         console.log('Started refreshing application (/) commands.');
-        await rest.put(discord_js_1.Routes.applicationCommands(process.env.CLIENT_ID), { body: music_1.musicCommands.data });
+        await rest.put(discord_js_1.Routes.applicationCommands(process.env.CLIENT_ID), { body: [...music_1.musicCommands.data, question_1.questionCommand.data] });
         console.log('Successfully reloaded application (/) commands.');
     }
     catch (error) {

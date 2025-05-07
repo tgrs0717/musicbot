@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.helloCommand = void 0;
+exports.questionCommand = void 0;
 const discord_js_1 = require("discord.js");
-exports.helloCommand = {
+exports.questionCommand = {
     data: new discord_js_1.SlashCommandBuilder()
         .setName('question')
         .setDescription('匿名で質問を送信します。')
