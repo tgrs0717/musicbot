@@ -9,7 +9,7 @@ export default {
     ),
 
   async execute(interaction: ChatInputCommandInteraction) {
-    const allowedChannelId = '1367019631025324092';
+    const allowedChannelId = '1367022879798988850';
     if (interaction.channelId !== allowedChannelId) {
       await interaction.reply({
         content: 'このコマンドは指定されたチャンネルでのみ使用できます。',
