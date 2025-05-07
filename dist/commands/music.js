@@ -42,21 +42,17 @@ const musicPlayers = new Map();
 const getOrCreatePlayer = async (interaction) => {
     const member = await interaction.guild?.members.fetch(interaction.user.id);
     const voiceChannel = member?.voice.channel;
-    if (!voiceChannel) {
-        await interaction.reply({ content: 'ボイスチャンネルに参加してから実行してください！', ephemeral: true });
-        return null;
-    }
+    if (!voiceChannel)
+        return { error: 'no_voice_channel' };
     let player = musicPlayers.get(interaction.guildId);
     if (!player) {
         player = new MusicPlayer_1.MusicPlayer();
         musicPlayers.set(interaction.guildId, player);
     }
     const joined = await player.join(voiceChannel);
-    if (!joined) {
-        await interaction.reply({ content: 'ボイスチャンネルへの参加に失敗しました。', ephemeral: true });
-        return null;
-    }
-    return player;
+    if (!joined)
+        return { error: 'join_failed' };
+    return { player };
 };
 exports.musicCommands = {
     data: [
@@ -110,29 +106,35 @@ exports.musicCommands = {
         }
         switch (interaction.commandName) {
             case 'play': {
-                const player = await getOrCreatePlayer(interaction);
-                if (!player)
+                const { player, error } = await getOrCreatePlayer(interaction);
+                if (error || !player) {
+                    await interaction.reply({ content: 'ボイスチャンネルに参加できませんでした。', ephemeral: true });
                     return;
+                }
                 const source = MusicPlayer_1.MusicPlayer.resolveSource(interaction.options.getString('source'));
-                await player.playImmediate(source);
-                await interaction.reply({ content: '再生を開始します', ephemeral: true, });
+                player.playImmediate(source);
+                await interaction.reply({ content: '再生を開始します', ephemeral: true });
                 break;
             }
             case 'queue': {
-                const player = await getOrCreatePlayer(interaction);
-                if (!player)
+                const { player, error } = await getOrCreatePlayer(interaction);
+                if (error || !player) {
+                    await interaction.reply({ content: 'ボイスチャンネルに参加できませんでした。', ephemeral: true });
                     return;
+                }
                 const source = MusicPlayer_1.MusicPlayer.resolveSource(interaction.options.getString('source'));
                 player.addToQueue(source);
-                await interaction.reply({ content: 'キューに追加しました', ephemeral: true, });
+                await interaction.reply({ content: 'キューに追加しました', ephemeral: true });
                 break;
             }
             case 'skip': {
-                const player = await getOrCreatePlayer(interaction);
-                if (!player)
+                const { player, error } = await getOrCreatePlayer(interaction);
+                if (error || !player) {
+                    await interaction.reply({ content: 'ボイスチャンネルに参加できませんでした。', ephemeral: true });
                     return;
+                }
                 player.playNext();
-                await interaction.reply({ content: '曲をスキップしました', ephemeral: true, });
+                await interaction.reply({ content: '曲をスキップしました', ephemeral: true });
                 break;
             }
             case 'stop': {
@@ -209,12 +211,14 @@ exports.musicCommands = {
                 break;
             }
             case 'play_default': {
-                const player = await getOrCreatePlayer(interaction);
-                if (!player)
+                const { player, error } = await getOrCreatePlayer(interaction);
+                if (error || !player) {
+                    await interaction.reply({ content: 'ボイスチャンネルに参加できませんでした。', ephemeral: true });
                     return;
+                }
                 // 再生する曲を取得
                 const source = MusicPlayer_1.MusicPlayer.resolveSource(interaction.options.getString('source'));
-                await player.playImmediate(source);
+                player.playImmediate(source);
                 // musicフォルダ内の.mp3ファイルを取得してキューに追加
                 const musicFolderPath = path.join(__dirname, '../../music');
                 const files = fs.readdirSync(musicFolderPath).filter(file => file.endsWith('.mp3'));

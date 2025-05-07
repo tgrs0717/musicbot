@@ -12,6 +12,18 @@ export const questionCommand = {
     ),
   
   async execute(interaction: ChatInputCommandInteraction) {
+    // 許可されたチャンネルIDを指定
+    const allowedChannelId = '1367022879798988850'; // 使用を許可するチャンネルのIDを設定
+
+    // コマンドが許可されたチャンネルで実行されているか確認
+    if (interaction.channelId !== allowedChannelId) {
+      await interaction.reply({
+        content: 'このコマンドは指定されたチャンネルでのみ使用できます。',
+        ephemeral: true, // 実行者のみに表示
+      });
+      return;
+    }
+
     // ユーザーが入力したメッセージを取得
     const userMessage = interaction.options.getString('message');
 
