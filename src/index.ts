@@ -1,7 +1,7 @@
 import { Client, Events, GatewayIntentBits, REST, Routes, GuildMemberRoleManager } from 'discord.js';
 import * as dotenv from 'dotenv';
+import { questionCommand } from './commands/question';
 import { musicCommands } from './commands/music';
-import { helloCommand } from './commands/question';
 import { initializeTextBot } from './text';
 import express from 'express';
 
@@ -50,7 +50,7 @@ client.once(Events.ClientReady, async (readyClient) => {
 
     await rest.put(
       Routes.applicationCommands(process.env.CLIENT_ID!),
-      { body: musicCommands.data },
+      { body: [...musicCommands.data, questionCommand.data] }, // questionCommand を追加
     );
 
     console.log('Successfully reloaded application (/) commands.');

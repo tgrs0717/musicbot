@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
 
-export const helloCommand = {
+export const questionCommand = {
   data: new SlashCommandBuilder()
     .setName('question')
     .setDescription('匿名で質問を送信します。')
