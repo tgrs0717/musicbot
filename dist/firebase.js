@@ -18,3 +18,12 @@ if (!firebase_admin_1.default.apps.length) {
     });
 }
 exports.db = firebase_admin_1.default.firestore();
+(async () => {
+    try {
+        await exports.db.collection('debug').add({ timestamp: new Date().toISOString() });
+        console.log('✅ Firebase にテスト書き込み成功');
+    }
+    catch (err) {
+        console.error('❌ Firebase テスト書き込み失敗:', err);
+    }
+})();

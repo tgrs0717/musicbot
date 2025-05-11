@@ -40,8 +40,8 @@ const discord_js_1 = require("discord.js");
 const dotenv = __importStar(require("dotenv"));
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
-const text_1 = require("./text");
 const express_1 = __importDefault(require("express"));
+const text_1 = require("./text"); // <- 修正ポイント
 // Expressサーバーの設定
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 3000;
@@ -51,17 +51,12 @@ app.get('/', (_req, res) => {
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
-// Load environment variables
+// 環境変数の読み込み
 dotenv.config();
-// Discordボットのトークン
 const BOT_TOKEN = process.env.DISCORD_TOKEN;
-if (!BOT_TOKEN) {
-    throw new Error('BOT_TOKEN is not defined in the environment variables.');
-}
-// text.ts の初期化
-(0, text_1.initializeTextBot)(BOT_TOKEN);
-console.log('Bot is running...');
-// Discordクライアントの拡張クラス
+if (!BOT_TOKEN)
+    throw new Error('BOT_TOKEN is not defined in environment variables.');
+// 拡張クライアント定義
 class ExtendedClient extends discord_js_1.Client {
     commands;
     constructor(options) {
@@ -69,25 +64,25 @@ class ExtendedClient extends discord_js_1.Client {
         this.commands = new discord_js_1.Collection();
     }
 }
-// Discordクライアントの作成
+// クライアント作成（IntentにMessageContent追加）
 const client = new ExtendedClient({
-    intents: [discord_js_1.GatewayIntentBits.Guilds, discord_js_1.GatewayIntentBits.GuildVoiceStates],
+    intents: [
+        discord_js_1.GatewayIntentBits.Guilds,
+        discord_js_1.GatewayIntentBits.GuildMessages,
+        discord_js_1.GatewayIntentBits.MessageContent,
+        discord_js_1.GatewayIntentBits.GuildVoiceStates,
+    ],
 });
-// コマンドファイルの読み込み
+// コマンド読み込み
 const commandsPath = path.join(__dirname, 'commands');
-const commandFiles = fs
-    .readdirSync(commandsPath)
-    .filter(file => file.endsWith('.ts') || file.endsWith('.js'));
+const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.ts') || file.endsWith('.js'));
 for (const file of commandFiles) {
     const filePath = path.join(commandsPath, file);
     const commandModule = require(filePath);
     const command = commandModule.default || commandModule;
     if (Array.isArray(command.data)) {
         for (const builder of command.data) {
-            client.commands.set(builder.name, {
-                ...command,
-                data: builder,
-            });
+            client.commands.set(builder.name, { ...command, data: builder });
         }
     }
     else if ('data' in command && 'execute' in command) {
@@ -97,11 +92,7 @@ for (const file of commandFiles) {
         console.warn(`⚠️ コマンドファイル "${file}" に data または execute が存在しません`);
     }
 }
-// ボット起動時のログ
-client.once('ready', () => {
-    console.log(`✅ Botとしてログインしました: ${client.user?.tag}`);
-});
-// コマンド実行処理
+// コマンド処理
 client.on('interactionCreate', async (interaction) => {
     if (!interaction.isChatInputCommand())
         return;
@@ -116,17 +107,17 @@ client.on('interactionCreate', async (interaction) => {
     catch (error) {
         console.error(`❌ コマンド "${interaction.commandName}" 実行時にエラー発生:`, error);
         if (interaction.replied || interaction.deferred) {
-            await interaction.editReply({
-                content: '⚠️ コマンド実行中にエラーが発生しました。',
-            });
+            await interaction.editReply({ content: '⚠️ コマンド実行中にエラーが発生しました。' });
         }
         else {
-            await interaction.reply({
-                content: '⚠️ コマンド実行中にエラーが発生しました。',
-                ephemeral: true,
-            });
+            await interaction.reply({ content: '⚠️ コマンド実行中にエラーが発生しました。', ephemeral: true });
         }
     }
 });
-// トークンでログイン
-client.login(process.env.DISCORD_TOKEN);
+// テキスト処理の登録（Clientを渡すだけ）
+(0, text_1.registerPomodoroHandlers)(client);
+// 起動ログ
+client.once('ready', () => {
+    console.log(`✅ Botとしてログインしました: ${client.user?.tag}`);
+});
+client.login(BOT_TOKEN);

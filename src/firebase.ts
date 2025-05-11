@@ -16,4 +16,15 @@ if (!admin.apps.length) {
   });
 }
 
+
+
 export const db = admin.firestore();
+
+(async () => {
+  try {
+    await db.collection('debug').add({ timestamp: new Date().toISOString() });
+    console.log('✅ Firebase にテスト書き込み成功');
+  } catch (err) {
+    console.error('❌ Firebase テスト書き込み失敗:', err);
+  }
+})();

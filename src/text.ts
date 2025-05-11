@@ -28,28 +28,36 @@ export function registerPomodoroHandlers(client: Client) {
 
     const content = message.content;
 
-    if (content.includes('終了') || content.includes('休憩') || content.includes('中断')) {
-      const doc = await db.collection('pomodoro_sessions').doc(message.author.id).get();
-      if (!doc.exists) {
-        await replyAndDelete(message, '開始時刻が記録されていません。');
-        return;
-      }
+    // 終了メッセージ処理
+if (content.includes('終了') || content.includes('休憩') || content.includes('中断')) {
+  let doc;
+  try {
+    doc = await db.collection('pomodoro_sessions').doc(message.author.id).get();
+  } catch (error) {
+    console.error('❌ Firebase からのデータ取得に失敗:', error);
+    await replyAndDelete(message, 'Firebase からデータを取得できませんでした。');
+    return;
+  }
 
-      const data = doc.data();
-      const startTime = new Date(data!.startTime);
-      const endTime = new Date();
-      const elapsed = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
-      const minutes = Math.floor(elapsed / 60);
-      const seconds = elapsed % 60;
+  if (!doc.exists) {
+    await replyAndDelete(message, '開始時刻が記録されていません。');
+    return;
+  }
 
-      try {
-        const reaction = await message.react('☑');
-        setTimeout(() => reaction.remove().catch(console.error), 3000);
-        await message.author.send(`お疲れ様です。作業時間: ${minutes}分${seconds}秒`);
-      } catch (error) {
-        console.error('リアクションまたはDM送信に失敗:', error);
-      }
+  const data = doc.data();
+  const startTime = new Date(data!.startTime);
+  const endTime = new Date();
+  const elapsed = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
+  const minutes = Math.floor(elapsed / 60);
+  const seconds = elapsed % 60;
 
+  try {
+    const reaction = await message.react('☑');
+    setTimeout(() => reaction.remove().catch(console.error), 3000);
+    await message.author.send(`お疲れ様です。作業時間: ${minutes}分${seconds}秒`);
+  } catch (error) {
+    console.error('リアクションまたはDM送信に失敗:', error);
+  }
       await db.collection('pomodoro_sessions').doc(message.author.id).delete();
     }
 
@@ -66,6 +74,17 @@ export function registerPomodoroHandlers(client: Client) {
       });
 
       try {
+    // Firebase 書き込み
+    await db.collection('pomodoro_sessions').doc(message.author.id).set({
+      startTime: new Date().toISOString(),
+      channelId: message.channel.id,
+    });
+    console.log(`✅ Firebase 書き込み成功: ${message.author.id}`);
+  } catch (error) {
+    console.error('❌ Firebase 書き込み失敗:', error);
+  }
+
+      try {
         const reaction = await message.react('✅');
         setTimeout(() => reaction.remove().catch(console.error), 3000);
       } catch (error) {
@@ -74,6 +93,7 @@ export function registerPomodoroHandlers(client: Client) {
     }
   });
 
+  
   // JST毎日5時にセッションをリセット
   setInterval(async () => {
     const now = new Date();
@@ -102,3 +122,5 @@ export function registerPomodoroHandlers(client: Client) {
     }
   }, 60000);
 }
+
+
