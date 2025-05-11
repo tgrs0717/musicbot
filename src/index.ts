@@ -1,9 +1,9 @@
-import { Client, Collection, GatewayIntentBits,Interaction } from 'discord.js';
+import { Client, Collection, GatewayIntentBits, Interaction } from 'discord.js';
 import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 import * as path from 'path';
-import { initializeTextBot } from './text';
 import express from 'express';
+import { registerPomodoroHandlers } from './text'; // <- 修正ポイント
 
 // Expressサーバーの設定
 const app = express();
@@ -17,66 +17,51 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
-// Load environment variables
+// 環境変数の読み込み
 dotenv.config();
-
-// Discordボットのトークン
 const BOT_TOKEN = process.env.DISCORD_TOKEN;
-if (!BOT_TOKEN) {
-  throw new Error('BOT_TOKEN is not defined in the environment variables.');
-}
+if (!BOT_TOKEN) throw new Error('BOT_TOKEN is not defined in environment variables.');
 
-// text.ts の初期化
-initializeTextBot(BOT_TOKEN);
-
-console.log('Bot is running...');
-
-// Discordクライアントの拡張クラス
+// 拡張クライアント定義
 class ExtendedClient extends Client {
   commands: Collection<string, any>;
-
   constructor(options: any) {
     super(options);
     this.commands = new Collection();
   }
 }
 
-// Discordクライアントの作成
+// クライアント作成（IntentにMessageContent追加）
 const client = new ExtendedClient({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates],
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildVoiceStates,
+  ],
 });
 
-// コマンドファイルの読み込み
+// コマンド読み込み
 const commandsPath = path.join(__dirname, 'commands');
-const commandFiles = fs
-  .readdirSync(commandsPath)
-  .filter(file => file.endsWith('.ts') || file.endsWith('.js'));
+const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.ts') || file.endsWith('.js'));
 
-  for (const file of commandFiles) {
-    const filePath = path.join(commandsPath, file);
-    const commandModule = require(filePath);
-    const command = commandModule.default || commandModule;
-  
-    if (Array.isArray(command.data)) {
-      for (const builder of command.data) {
-        client.commands.set(builder.name, {
-          ...command,
-          data: builder,
-        });
-      }
-    } else if ('data' in command && 'execute' in command) {
-      client.commands.set(command.data.name, command);
-    } else {
-      console.warn(`⚠️ コマンドファイル "${file}" に data または execute が存在しません`);
+for (const file of commandFiles) {
+  const filePath = path.join(commandsPath, file);
+  const commandModule = require(filePath);
+  const command = commandModule.default || commandModule;
+
+  if (Array.isArray(command.data)) {
+    for (const builder of command.data) {
+      client.commands.set(builder.name, { ...command, data: builder });
     }
+  } else if ('data' in command && 'execute' in command) {
+    client.commands.set(command.data.name, command);
+  } else {
+    console.warn(`⚠️ コマンドファイル "${file}" に data または execute が存在しません`);
   }
+}
 
-// ボット起動時のログ
-client.once('ready', () => {
-  console.log(`✅ Botとしてログインしました: ${client.user?.tag}`);
-});
-
-// コマンド実行処理
+// コマンド処理
 client.on('interactionCreate', async (interaction: Interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
@@ -91,17 +76,19 @@ client.on('interactionCreate', async (interaction: Interaction) => {
   } catch (error) {
     console.error(`❌ コマンド "${interaction.commandName}" 実行時にエラー発生:`, error);
     if (interaction.replied || interaction.deferred) {
-      await interaction.editReply({
-        content: '⚠️ コマンド実行中にエラーが発生しました。',
-      });
+      await interaction.editReply({ content: '⚠️ コマンド実行中にエラーが発生しました。' });
     } else {
-      await interaction.reply({
-        content: '⚠️ コマンド実行中にエラーが発生しました。',
-        ephemeral: true,
-      });
+      await interaction.reply({ content: '⚠️ コマンド実行中にエラーが発生しました。', ephemeral: true });
     }
   }
 });
 
-// トークンでログイン
-client.login(process.env.DISCORD_TOKEN);
+// テキスト処理の登録（Clientを渡すだけ）
+registerPomodoroHandlers(client);
+
+// 起動ログ
+client.once('ready', () => {
+  console.log(`✅ Botとしてログインしました: ${client.user?.tag}`);
+});
+
+client.login(BOT_TOKEN);
