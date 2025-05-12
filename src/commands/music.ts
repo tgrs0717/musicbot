@@ -71,7 +71,7 @@ const commands: Command[] = [
   guildOnly: true,
 
   async execute(interaction) {
-    const musicDir = path.join(__dirname, '..', 'music');
+    const musicDir = path.join(__dirname, '../../../music');
     let files: string[];
 
     try {

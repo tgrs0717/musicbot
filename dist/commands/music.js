@@ -97,7 +97,7 @@ const commands = [
             .setDescription('musicフォルダ内の曲をシャッフルして再生します'),
         guildOnly: true,
         async execute(interaction) {
-            const musicDir = path.join(__dirname, '..', 'music');
+            const musicDir = path.join(__dirname, '../../../music');
             let files;
             try {
                 files = fs.readdirSync(musicDir)
