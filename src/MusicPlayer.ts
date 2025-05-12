@@ -65,6 +65,11 @@ export class MusicPlayer {
   
       this.connection.subscribe(this.audioPlayer);
   
+      // ../music ディレクトリ内のすべての .mp3 ファイルを取得し、001.mp3 を除外
+      const musicDir = join(__dirname, '../music');
+      const files = readdirSync(musicDir)
+        .filter(file => file.endsWith('.mp3') && file !== '001.mp3'); // 001.mp3 を除外
+      files.forEach(file => this.addToQueue(join(musicDir, file)));
   
       // キューのループ再生をオンにする
       this.isQueueLooping = true;

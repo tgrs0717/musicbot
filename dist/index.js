@@ -37,12 +37,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
-const dotenv = __importStar(require("dotenv"));
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
+require("dotenv/config");
 const express_1 = __importDefault(require("express"));
-const text_1 = require("./text"); // <- 修正ポイント
-// Expressサーバーの設定
+const dotenv = __importStar(require("dotenv"));
+const text_1 = require("./text");
+dotenv.config();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 3000;
 app.get('/', (_req, res) => {
@@ -51,12 +52,7 @@ app.get('/', (_req, res) => {
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
-// 環境変数の読み込み
-dotenv.config();
-const BOT_TOKEN = process.env.DISCORD_TOKEN;
-if (!BOT_TOKEN)
-    throw new Error('BOT_TOKEN is not defined in environment variables.');
-// 拡張クライアント定義
+// 拡張クライアントクラス
 class ExtendedClient extends discord_js_1.Client {
     commands;
     constructor(options) {
@@ -64,35 +60,57 @@ class ExtendedClient extends discord_js_1.Client {
         this.commands = new discord_js_1.Collection();
     }
 }
-// クライアント作成（IntentにMessageContent追加）
+// Discord クライアントの作成
 const client = new ExtendedClient({
     intents: [
         discord_js_1.GatewayIntentBits.Guilds,
+        discord_js_1.GatewayIntentBits.GuildVoiceStates,
         discord_js_1.GatewayIntentBits.GuildMessages,
         discord_js_1.GatewayIntentBits.MessageContent,
-        discord_js_1.GatewayIntentBits.GuildVoiceStates,
     ],
 });
-// コマンド読み込み
-const commandsPath = path.join(__dirname, 'commands');
-const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.ts') || file.endsWith('.js'));
-for (const file of commandFiles) {
-    const filePath = path.join(commandsPath, file);
-    const commandModule = require(filePath);
-    const command = commandModule.default || commandModule;
-    if (Array.isArray(command.data)) {
-        for (const builder of command.data) {
-            client.commands.set(builder.name, { ...command, data: builder });
+// スラッシュコマンド登録関数
+async function registerSlashCommands(clientId, guildId) {
+    const commands = [];
+    const commandsPath = path.join(__dirname, 'commands');
+    const commandFiles = fs
+        .readdirSync(commandsPath)
+        .filter(file => file.endsWith('.ts') || file.endsWith('.js'));
+    for (const file of commandFiles) {
+        const filePath = path.join(commandsPath, file);
+        const commandModule = require(filePath);
+        const exports = commandModule.default || commandModule;
+        const commandArray = Array.isArray(exports) ? exports : [exports];
+        for (const command of commandArray) {
+            if (command.data && 'name' in command.data) {
+                client.commands.set(command.data.name, command); // コマンドを登録
+                commands.push(command.data.toJSON()); // スラッシュコマンド用にJSON化
+            }
+            else {
+                console.warn(`⚠️ コマンド "${file}" に name または data がありません`);
+            }
         }
     }
-    else if ('data' in command && 'execute' in command) {
-        client.commands.set(command.data.name, command);
+    const rest = new discord_js_1.REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+    try {
+        console.log('📡 スラッシュコマンドを登録中...');
+        await rest.put(discord_js_1.Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID), // 即時反映のためGuild単位
+        { body: commands });
+        console.log('✅ スラッシュコマンドの登録完了');
     }
-    else {
-        console.warn(`⚠️ コマンドファイル "${file}" に data または execute が存在しません`);
+    catch (error) {
+        console.error('❌ スラッシュコマンドの登録中にエラー:', error);
+    }
+    console.log('コマンド一覧:');
+    for (const [name, command] of client.commands.entries()) {
+        console.log(`- ${name}:`, typeof command.data?.toJSON === 'function' ? 'OK' : 'NG');
     }
 }
-// コマンド処理
+// イベント: Botログイン後
+client.once('ready', () => {
+    console.log(`✅ Botとしてログインしました: ${client.user?.tag}`);
+});
+// イベント: コマンド実行
 client.on('interactionCreate', async (interaction) => {
     if (!interaction.isChatInputCommand())
         return;
@@ -114,10 +132,9 @@ client.on('interactionCreate', async (interaction) => {
         }
     }
 });
-// テキスト処理の登録（Clientを渡すだけ）
+// テキストメッセージハンドラー登録
 (0, text_1.registerPomodoroHandlers)(client);
-// 起動ログ
-client.once('ready', () => {
-    console.log(`✅ Botとしてログインしました: ${client.user?.tag}`);
+// Botログイン後にコマンドを登録
+client.login(process.env.DISCORD_TOKEN).then(() => {
+    registerSlashCommands(process.env.CLIENT_ID, process.env.GUILD_ID);
 });
-client.login(BOT_TOKEN);

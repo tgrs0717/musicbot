@@ -1,7 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerPomodoroHandlers = registerPomodoroHandlers;
+exports.startNotifyTimer = startNotifyTimer;
+exports.stopNotifyTimer = stopNotifyTimer;
 const firebase_1 = require("./firebase");
+const TARGET_CHANNEL_ID = process.env.TARGET_CHANNEL_ID;
+const notifyTimers = new Map();
+const restartTimers = new Map();
 async function replyAndDelete(message, content, delay = 10000) {
     try {
         const replyMessage = await message.reply(content);
@@ -18,10 +23,6 @@ async function replyAndDelete(message, content, delay = 10000) {
         console.error('リプライの送信に失敗しました:', error);
     }
 }
-const TARGET_CHANNEL_ID = '1358033487462010900';
-/**
- * クライアントにポモドーロ用のハンドラを登録
- */
 function registerPomodoroHandlers(client) {
     client.on('messageCreate', async (message) => {
         if (message.channel.id !== TARGET_CHANNEL_ID)
@@ -29,7 +30,6 @@ function registerPomodoroHandlers(client) {
         if (message.author.bot)
             return;
         const content = message.content;
-        // 終了メッセージ処理
         if (content.includes('終了') || content.includes('休憩') || content.includes('中断')) {
             let doc;
             try {
@@ -50,6 +50,7 @@ function registerPomodoroHandlers(client) {
             const elapsed = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
             const minutes = Math.floor(elapsed / 60);
             const seconds = elapsed % 60;
+            stopNotifyTimer(message.author.id);
             try {
                 const reaction = await message.react('☑');
                 setTimeout(() => reaction.remove().catch(console.error), 3000);
@@ -66,12 +67,7 @@ function registerPomodoroHandlers(client) {
                 await replyAndDelete(message, '既に開始時刻が記録されています');
                 return;
             }
-            await firebase_1.db.collection('pomodoro_sessions').doc(message.author.id).set({
-                startTime: new Date().toISOString(),
-                channelId: message.channel.id,
-            });
             try {
-                // Firebase 書き込み
                 await firebase_1.db.collection('pomodoro_sessions').doc(message.author.id).set({
                     startTime: new Date().toISOString(),
                     channelId: message.channel.id,
@@ -81,6 +77,7 @@ function registerPomodoroHandlers(client) {
             catch (error) {
                 console.error('❌ Firebase 書き込み失敗:', error);
             }
+            startNotifyTimer(client, message.author.id);
             try {
                 const reaction = await message.react('✅');
                 setTimeout(() => reaction.remove().catch(console.error), 3000);
@@ -90,7 +87,6 @@ function registerPomodoroHandlers(client) {
             }
         }
     });
-    // JST毎日5時にセッションをリセット
     setInterval(async () => {
         const now = new Date();
         const jst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
@@ -114,4 +110,63 @@ function registerPomodoroHandlers(client) {
             console.log('✅ 作業時間リセット完了:', jst.toISOString());
         }
     }, 60000);
+}
+async function startNotifyTimer(client, userId) {
+    const doc = await firebase_1.db.collection('user_settings').doc(userId).get();
+    const settings = doc.data() || {};
+    const intervalMin = settings.workDuration ?? 25;
+    const breakMin = settings.breakDuration ?? 5;
+    const enabled = settings.notifyEnabled ?? true;
+    if (!enabled)
+        return;
+    // 🔁 既存タイマーのクリア
+    if (notifyTimers.has(userId)) {
+        clearTimeout(notifyTimers.get(userId));
+        notifyTimers.delete(userId);
+    }
+    if (restartTimers.has(userId)) {
+        clearTimeout(restartTimers.get(userId));
+        restartTimers.delete(userId);
+    }
+    try {
+        const user = await client.users.fetch(userId);
+        await user.send(`ポモドーロを開始しました。${intervalMin}分後に通知します。`);
+    }
+    catch (err) {
+        console.error(`ユーザー ${userId} への開始通知に失敗しました:`, err);
+    }
+    const cycle = async () => {
+        try {
+            const user = await client.users.fetch(userId);
+            await user.send(` ${intervalMin}分が経過しました。小休憩（${breakMin}分）を取りましょう。`);
+        }
+        catch (err) {
+            console.error(`ユーザー ${userId} への通知に失敗しました:`, err);
+        }
+        notifyTimers.delete(userId);
+        // 休憩後の再スタートを予約（※ restartTimers に登録）
+        const restartTimer = setTimeout(() => {
+            console.log(`🔁 ユーザー ${userId} の休憩が終了。作業通知を再開します。`);
+            restartTimers.delete(userId);
+            startNotifyTimer(client, userId);
+        }, breakMin * 60 * 1000);
+        restartTimers.set(userId, restartTimer);
+    };
+    const timer = setTimeout(() => {
+        cycle();
+    }, intervalMin * 60 * 1000);
+    notifyTimers.set(userId, timer);
+}
+function stopNotifyTimer(userId) {
+    const timer = notifyTimers.get(userId);
+    if (timer) {
+        clearTimeout(timer);
+        notifyTimers.delete(userId);
+    }
+    const restart = restartTimers.get(userId);
+    if (restart) {
+        clearTimeout(restart);
+        restartTimers.delete(userId);
+    }
+    console.log(`⛔ ユーザー ${userId} のポモドーロ通知を完全に停止しました。`);
 }
