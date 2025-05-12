@@ -65,45 +65,103 @@ const commands: Command[] = [
     },
   },
   {
-  data: new SlashCommandBuilder()
-    .setName('play_default')
-    .setDescription('musicフォルダ内の曲をシャッフルして再生します'),
-  guildOnly: true,
+    data: new SlashCommandBuilder()
+      .setName('play_default')
+      .setDescription('デフォルトのプレイリストを再生します')
+      .addStringOption(option =>
+        option.setName('source')
+          .setDescription('再生するファイル名またはURL（省略時は001.mp3）')
+          .setRequired(false),
+          ) as SlashCommandBuilder,
+    guildOnly: true,
+    async execute(interaction) {
+      const { player, error } = await getOrCreatePlayer(interaction);
+      if (error || !player) return handleError(interaction, 'ボイスチャンネルに参加できませんでした。');
+      const source = MusicPlayer.resolveSource(interaction.options.getString('source') || '001.mp3');
+      player.playImmediate(source);
 
-  async execute(interaction) {
-    const musicDir = path.join(__dirname, '../../../music');
-    let files: string[];
+        const musicFolderPath = path.join(__dirname, '../../music');
+        const files = fs.readdirSync(musicFolderPath).filter(file => file.endsWith('.mp3'));
+        for (const file of files) {
+          const filePath = path.join(musicFolderPath, file);
+          player.addToQueue(filePath);
+        }
 
-    try {
-      files = fs.readdirSync(musicDir)
-        .filter(file => file.endsWith('.mp3'));
-
-      if (files.length === 0) {
-        await interaction.reply({ content: '⚠️ musicフォルダに.mp3ファイルが見つかりません。', ephemeral: true });
-        return;
-      }
-    } catch (err) {
-      console.error('❌ ファイル読み込みエラー:', err);
-      await interaction.reply({ content: '⚠️ 音楽ファイルの読み込みに失敗しました。', ephemeral: true });
-      return;
-    }
-
-    // シャッフルして先頭を即再生、残りはキューへ
-    const shuffled = shuffleArray(files);
-    const { player, error } = await getOrCreatePlayer(interaction);
-    if (error || !player) return handleError(interaction, 'ボイスチャンネルに参加できませんでした。');
-
-    const firstTrack = path.join(musicDir, shuffled[0]);
-    player.playImmediate(firstTrack);
-
-    // 残りをキューに追加
-    for (const track of shuffled.slice(1)) {
-      const filePath = path.join(musicDir, track);
-      player.addToQueue(filePath);
-    }
-
-    await interaction.reply({ content: `🎵 曲をシャッフルして再生しました：**${shuffled[0]}**`, ephemeral: true });
+        const message = `再生を開始しました。musicフォルダ内の${files.length}曲をキューに追加しました。`;
+        return interaction.replied || interaction.deferred
+          ? interaction.editReply({ content: message })
+          : interaction.reply({ content: message, ephemeral: true });
   },
+},
+{
+  data: new SlashCommandBuilder()
+  .setName('queue_loop')
+  .setDescription('キューのループを切り替えます') as SlashCommandBuilder,
+  guildOnly: true,
+  async execute(interaction)  {
+  if (!interaction.guildId) {
+    return handleError(interaction, 'このコマンドはサーバー内でのみ使用できます。');
+  }
+    const player = musicPlayers.get(interaction.guildId);
+        if (player) {
+          const isLooping = player.toggleQueueLoop();
+          const message = isLooping ? 'キューのループ再生を有効にしました。' : 'キューのループ再生を無効にしました。';
+          return interaction.replied || interaction.deferred
+            ? interaction.editReply({ content: message })
+            : interaction.reply({ content: message, ephemeral: true });
+        }
+        return handleError(interaction, '再生中の曲はありません。');
+      }
+},
+{ 
+  data: new SlashCommandBuilder()
+  .setName('track_loop')
+  .setDescription('ループ再生を切り替えます') as SlashCommandBuilder,
+  guildOnly: true,
+  async execute(interaction) {
+    if (!interaction.guildId) {
+      return handleError(interaction, 'このコマンドはサーバー内でのみ使用できます。');
+    }
+    const player = musicPlayers.get(interaction.guildId);
+        if (player) {
+          const isLooping = player.toggleTrackLoop();
+          const message = isLooping ? 'ループ再生を有効にしました。' : 'ループ再生を無効にしました。';
+          return interaction.replied || interaction.deferred
+            ? interaction.editReply({ content: message })
+            : interaction.reply({ content: message, ephemeral: true });
+        }
+        return handleError(interaction, '再生中の曲はありません。');
+      }
+},
+
+{
+  data: new SlashCommandBuilder()
+  .setName('queuelist')
+  .setDescription('キューのリストを表示します'
+    ) as SlashCommandBuilder,
+  guildOnly: true,
+  async execute(interaction) {
+  if (!interaction.guildId) {
+    return handleError(interaction, 'このコマンドはサーバー内でのみ使用できます。');
+  }
+
+  const player = musicPlayers.get(interaction.guildId);
+  if (player) {
+    const queue = player.getQueue();
+    const message = queue.length
+      ? `現在のキュー:\n${queue.map((track, i) => `${i + 1}. ${track}`).join('\n')}`
+      : 'キューには曲がありません。';
+
+    if (interaction.replied || interaction.deferred) {
+      await interaction.editReply({ content: message });
+    } else {
+      await interaction.reply({ content: message, ephemeral: true });
+    }
+    return;
+  }
+
+  return handleError(interaction, '再生中の曲はありません。');
+}
 },
   
   {
