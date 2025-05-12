@@ -7,17 +7,8 @@ export default {
     .addStringOption(option =>
       option.setName('message').setDescription('質問を入力してください。').setRequired(true)
     ),
-
-  async execute(interaction: ChatInputCommandInteraction) {
-    const allowedChannelId = '1367022879798988850';
-    if (interaction.channelId !== allowedChannelId) {
-      await interaction.reply({
-        content: 'このコマンドは指定されたチャンネルでのみ使用できます。',
-        ephemeral: true,
-      });
-      return;
-    }
-
+  guildOnly: true,
+  async execute(interaction: ChatInputCommandInteraction) {   
     await interaction.deferReply({ ephemeral: true });
 
     try {
