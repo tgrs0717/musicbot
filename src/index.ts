@@ -40,49 +40,64 @@ const client = new ExtendedClient({
 
 // スラッシュコマンド登録関数
 async function registerSlashCommands(clientId: string, guildId: string) {
-  const commands: any[] = [];
+  const globalCommands: any[] = [];
+  const guildCommands: any[] = [];
 
   const commandsPath = path.join(__dirname, 'commands');
-const commandFiles = fs
-  .readdirSync(commandsPath)
-  .filter(file => file.endsWith('.ts') || file.endsWith('.js'));
+  const commandFiles = fs
+    .readdirSync(commandsPath)
+    .filter(file => file.endsWith('.ts') || file.endsWith('.js'));
 
-for (const file of commandFiles) {
-  const filePath = path.join(commandsPath, file);
-  const commandModule = require(filePath);
-  const exports = commandModule.default || commandModule;
+  for (const file of commandFiles) {
+    const filePath = path.join(commandsPath, file);
+    const commandModule = require(filePath);
+    const exports = commandModule.default || commandModule;
+    const commandArray = Array.isArray(exports) ? exports : [exports];
 
-  const commandArray = Array.isArray(exports) ? exports : [exports];
+    for (const command of commandArray) {
+      if (command.data && 'name' in command.data) {
+        client.commands.set(command.data.name, command);
 
-  for (const command of commandArray) {
-    if (command.data && 'name' in command.data) {
-      client.commands.set(command.data.name, command); // コマンドを登録
-      commands.push(command.data.toJSON()); // スラッシュコマンド用にJSON化
-    } else {
-      console.warn(`⚠️ コマンド "${file}" に name または data がありません`);
+        if (command.guildOnly) {
+          guildCommands.push(command.data.toJSON());
+        } else {
+          globalCommands.push(command.data.toJSON());
+        }
+      } else {
+        console.warn(`⚠️ コマンド "${file}" に name または data がありません`);
+      }
     }
   }
-}
-
-
 
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN!);
 
   try {
-    console.log('📡 スラッシュコマンドを登録中...');
-    await rest.put(
-      Routes.applicationCommands(process.env.CLIENT_ID!),
-      { body: commands }
-    );
-    // ギルドコマンドを削除（オプション）
-    await rest.put(
-      Routes.applicationGuildCommands(process.env.CLIENT_ID!, process.env.GUILD_ID!),
-      { body: [] }
-    );
+    if (guildCommands.length > 0) {
+      console.log('📡 ギルドコマンドを登録中...');
+      await rest.put(
+        Routes.applicationGuildCommands(clientId, guildId),
+        { body: [] });
+      await rest.put(
+        Routes.applicationGuildCommands(clientId, guildId),
+        { body: guildCommands }
+      );
+      console.log('✅ ギルドコマンドの登録完了');
+    }
 
-    console.log('✅ スラッシュコマンドの登録完了');
+    if (globalCommands.length > 0) {
+      console.log('🌐 グローバルコマンドを登録中...');
+      await rest.put(
+        Routes.applicationCommands(clientId),
+        { body: [] }
+      );
+      await rest.put(
+        Routes.applicationCommands(clientId),
+        { body: globalCommands }
+      );
+      console.log('✅ グローバルコマンドの登録完了');
+    }
   } catch (error) {
-    console.error('❌ スラッシュコマンドの登録中にエラー:', error);
+    console.error('❌ スラッシュコマンドの登録エラー:', error);
   }
   console.log('コマンド一覧:');
 for (const [name, command] of client.commands.entries()) {

@@ -71,7 +71,8 @@ const client = new ExtendedClient({
 });
 // スラッシュコマンド登録関数
 async function registerSlashCommands(clientId, guildId) {
-    const commands = [];
+    const globalCommands = [];
+    const guildCommands = [];
     const commandsPath = path.join(__dirname, 'commands');
     const commandFiles = fs
         .readdirSync(commandsPath)
@@ -83,8 +84,13 @@ async function registerSlashCommands(clientId, guildId) {
         const commandArray = Array.isArray(exports) ? exports : [exports];
         for (const command of commandArray) {
             if (command.data && 'name' in command.data) {
-                client.commands.set(command.data.name, command); // コマンドを登録
-                commands.push(command.data.toJSON()); // スラッシュコマンド用にJSON化
+                client.commands.set(command.data.name, command);
+                if (command.guildOnly) {
+                    guildCommands.push(command.data.toJSON());
+                }
+                else {
+                    globalCommands.push(command.data.toJSON());
+                }
             }
             else {
                 console.warn(`⚠️ コマンド "${file}" に name または data がありません`);
@@ -93,14 +99,21 @@ async function registerSlashCommands(clientId, guildId) {
     }
     const rest = new discord_js_1.REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
     try {
-        console.log('📡 スラッシュコマンドを登録中...');
-        await rest.put(discord_js_1.Routes.applicationCommands(process.env.CLIENT_ID), { body: commands });
-        // ギルドコマンドを削除（オプション）
-        await rest.put(discord_js_1.Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID), { body: [] });
-        console.log('✅ スラッシュコマンドの登録完了');
+        if (guildCommands.length > 0) {
+            console.log('📡 ギルドコマンドを登録中...');
+            await rest.put(discord_js_1.Routes.applicationGuildCommands(clientId, guildId), { body: [] });
+            await rest.put(discord_js_1.Routes.applicationGuildCommands(clientId, guildId), { body: guildCommands });
+            console.log('✅ ギルドコマンドの登録完了');
+        }
+        if (globalCommands.length > 0) {
+            console.log('🌐 グローバルコマンドを登録中...');
+            await rest.put(discord_js_1.Routes.applicationCommands(clientId), { body: [] });
+            await rest.put(discord_js_1.Routes.applicationCommands(clientId), { body: globalCommands });
+            console.log('✅ グローバルコマンドの登録完了');
+        }
     }
     catch (error) {
-        console.error('❌ スラッシュコマンドの登録中にエラー:', error);
+        console.error('❌ スラッシュコマンドの登録エラー:', error);
     }
     console.log('コマンド一覧:');
     for (const [name, command] of client.commands.entries()) {
