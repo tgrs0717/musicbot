@@ -71,9 +71,15 @@ for (const file of commandFiles) {
   try {
     console.log('📡 スラッシュコマンドを登録中...');
     await rest.put(
-      Routes.applicationGuildCommands(process.env.CLIENT_ID!, process.env.GUILD_ID!), // 即時反映のためGuild単位
+      Routes.applicationCommands(process.env.CLIENT_ID!),
       { body: commands }
     );
+    // ギルドコマンドを削除（オプション）
+    await rest.put(
+      Routes.applicationGuildCommands(process.env.CLIENT_ID!, process.env.GUILD_ID!),
+      { body: [] }
+    );
+
     console.log('✅ スラッシュコマンドの登録完了');
   } catch (error) {
     console.error('❌ スラッシュコマンドの登録中にエラー:', error);

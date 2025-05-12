@@ -94,8 +94,9 @@ async function registerSlashCommands(clientId, guildId) {
     const rest = new discord_js_1.REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
     try {
         console.log('📡 スラッシュコマンドを登録中...');
-        await rest.put(discord_js_1.Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID), // 即時反映のためGuild単位
-        { body: commands });
+        await rest.put(discord_js_1.Routes.applicationCommands(process.env.CLIENT_ID), { body: commands });
+        // ギルドコマンドを削除（オプション）
+        await rest.put(discord_js_1.Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID), { body: [] });
         console.log('✅ スラッシュコマンドの登録完了');
     }
     catch (error) {
