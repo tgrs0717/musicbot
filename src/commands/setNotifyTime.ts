@@ -35,15 +35,28 @@ const setPomodoroCommand = {
 
       // Firestoreに設定を保存（mergeで他設定は保持）
       await db.collection('user_settings').doc(userId).set(
-        {
-          workDuration,
-          breakDuration,
-        },
-        { merge: true }
-      );
+  {
+    workDuration,
+    breakDuration,
+  },
+  { merge: true }
+);
 
-      // 新しい設定でタイマー再スタート
-      await startNotifyTimer(interaction.client, userId);
+// 現在作業中か確認
+const sessionDoc = await db.collection('pomodoro_sessions').doc(userId).get();
+
+// 通知設定を取得
+const userSettings = (await db.collection('user_settings').doc(userId).get()).data();
+const notifyEnabled = userSettings?.notifyEnabled ?? false;
+
+// 通知タイマーを止める（常に）
+await stopNotifyTimer(userId);
+
+// 作業中かつ通知有効なら再開
+if (sessionDoc.exists && notifyEnabled) {
+  await startNotifyTimer(interaction.client, userId);
+}
+
 
       // ユーザーへ返信
       await interaction.reply({

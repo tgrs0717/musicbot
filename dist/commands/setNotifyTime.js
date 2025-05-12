@@ -29,8 +29,17 @@ const setPomodoroCommand = {
                 workDuration,
                 breakDuration,
             }, { merge: true });
-            // 新しい設定でタイマー再スタート
-            await (0, text_1.startNotifyTimer)(interaction.client, userId);
+            // 現在作業中か確認
+            const sessionDoc = await firebase_1.db.collection('pomodoro_sessions').doc(userId).get();
+            // 通知設定を取得
+            const userSettings = (await firebase_1.db.collection('user_settings').doc(userId).get()).data();
+            const notifyEnabled = userSettings?.notifyEnabled ?? false;
+            // 通知タイマーを止める（常に）
+            await (0, text_1.stopNotifyTimer)(userId);
+            // 作業中かつ通知有効なら再開
+            if (sessionDoc.exists && notifyEnabled) {
+                await (0, text_1.startNotifyTimer)(interaction.client, userId);
+            }
             // ユーザーへ返信
             await interaction.reply({
                 content: `✅ ポモドーロを更新しました。\n- 作業: **${workDuration}分**\n- 休憩: **${breakDuration}分**`,
