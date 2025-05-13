@@ -8,12 +8,12 @@ const setPomodoroCommand = {
     .setName('pomodoro-set-time')
     .setDescription('ポモドーロの作業時間と休憩時間を設定します。')
     .addIntegerOption(option => 
-      option.setName('work_duration')
+      option.setName('work')
         .setDescription('作業時間（分単位）')
         .setRequired(true)
     )
     .addIntegerOption(option => 
-      option.setName('break_duration')
+      option.setName('break')
         .setDescription('休憩時間（分単位）')
         .setRequired(true)
     ),
@@ -21,8 +21,8 @@ const setPomodoroCommand = {
   async execute(interaction: CommandInteraction, options: CommandInteractionOptionResolver) {
     const userId = interaction.user.id;
 
-    const workDuration = interaction.options.get('work_duration')?.value as number;
-    const breakDuration = interaction.options.get('break_duration')?.value as number;
+    const workDuration = interaction.options.get('work')?.value as number;
+    const breakDuration = interaction.options.get('break')?.value as number;
 
     if (typeof workDuration !== 'number' || typeof breakDuration !== 'number') {
       await interaction.reply('❗作業時間と休憩時間を正しく指定してください。');

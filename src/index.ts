@@ -74,9 +74,9 @@ async function registerSlashCommands(clientId: string, guildId: string) {
   try {
     if (guildCommands.length > 0) {
       console.log('📡 ギルドコマンドを登録中...');
-      await rest.put(
-        Routes.applicationGuildCommands(clientId, guildId),
-        { body: [] });
+      // await rest.put(
+      //   Routes.applicationGuildCommands(clientId, guildId),
+      //   { body: [] });
       await rest.put(
         Routes.applicationGuildCommands(clientId, guildId),
         { body: guildCommands }
@@ -86,10 +86,10 @@ async function registerSlashCommands(clientId: string, guildId: string) {
 
     if (globalCommands.length > 0) {
       console.log('🌐 グローバルコマンドを登録中...');
-      await rest.put(
-        Routes.applicationCommands(clientId),
-        { body: [] }
-      );
+      // await rest.put(
+      //   Routes.applicationCommands(clientId),
+      //   { body: [] }
+      // );
       await rest.put(
         Routes.applicationCommands(clientId),
         { body: globalCommands }

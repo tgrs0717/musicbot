@@ -101,13 +101,18 @@ async function registerSlashCommands(clientId, guildId) {
     try {
         if (guildCommands.length > 0) {
             console.log('📡 ギルドコマンドを登録中...');
-            await rest.put(discord_js_1.Routes.applicationGuildCommands(clientId, guildId), { body: [] });
+            // await rest.put(
+            //   Routes.applicationGuildCommands(clientId, guildId),
+            //   { body: [] });
             await rest.put(discord_js_1.Routes.applicationGuildCommands(clientId, guildId), { body: guildCommands });
             console.log('✅ ギルドコマンドの登録完了');
         }
         if (globalCommands.length > 0) {
             console.log('🌐 グローバルコマンドを登録中...');
-            await rest.put(discord_js_1.Routes.applicationCommands(clientId), { body: [] });
+            // await rest.put(
+            //   Routes.applicationCommands(clientId),
+            //   { body: [] }
+            // );
             await rest.put(discord_js_1.Routes.applicationCommands(clientId), { body: globalCommands });
             console.log('✅ グローバルコマンドの登録完了');
         }

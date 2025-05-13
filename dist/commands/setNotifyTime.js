@@ -7,16 +7,16 @@ const setPomodoroCommand = {
     data: new builders_1.SlashCommandBuilder()
         .setName('pomodoro-set-time')
         .setDescription('ポモドーロの作業時間と休憩時間を設定します。')
-        .addIntegerOption(option => option.setName('work_duration')
+        .addIntegerOption(option => option.setName('work')
         .setDescription('作業時間（分単位）')
         .setRequired(true))
-        .addIntegerOption(option => option.setName('break_duration')
+        .addIntegerOption(option => option.setName('break')
         .setDescription('休憩時間（分単位）')
         .setRequired(true)),
     async execute(interaction, options) {
         const userId = interaction.user.id;
-        const workDuration = interaction.options.get('work_duration')?.value;
-        const breakDuration = interaction.options.get('break_duration')?.value;
+        const workDuration = interaction.options.get('work')?.value;
+        const breakDuration = interaction.options.get('break')?.value;
         if (typeof workDuration !== 'number' || typeof breakDuration !== 'number') {
             await interaction.reply('❗作業時間と休憩時間を正しく指定してください。');
             return;
